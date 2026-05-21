@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Startup Research Agent</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #18181f;
+      --surface2: #1f1f28;
+      --border: #2a2a35;
+      --accent: #7c6aff;
+      --accent2: #06b6d4;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+    .badge {
+      margin-left: auto;
+      background: rgba(124,106,255,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(124,106,255,0.3);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* ── Hero ── */
+    .hero { text-align: center; margin-bottom: 48px; }
+    .hero h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .hero p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+    .powered-by {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pill {
+      background: rgba(124,106,255,0.2);
+      color: var(--accent);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .pill.cyan {
+      background: rgba(6,182,212,0.2);
+      color: var(--accent2);
+    }
+
+    /* ── Search box ── */
+    .search-wrap {
+      display: flex;
+      gap: 10px;
+      max-width: 600px;
+      margin: 0 auto 48px;
+    }
+    .search-wrap input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-wrap button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 24px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .search-wrap button:hover { opacity: 0.88; }
+    .search-wrap button:active { transform: scale(0.97); }
+    .search-wrap button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Two-column workspace ── */
+    #workspace { display: none; gap: 24px; }
+    #workspace.visible { display: grid; grid-template-columns: 340px 1fr; }
+
+    /* ── Activity panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.4s infinite;
+    }
+    .dot.idle { background: var(--muted); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #activity-list {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+    .activity-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .activity-item.search {
+      background: rgba(124,106,255,0.08);
+      border-color: rgba(124,106,255,0.2);
+    }
+    .activity-item.scrape {
+      background: rgba(6,182,212,0.08);
+      border-color: rgba(6,182,212,0.2);
+    }
+    .activity-item.thinking {
+      background: rgba(245,158,11,0.06);
+      border-color: rgba(245,158,11,0.15);
+      color: var(--muted);
+      font-style: italic;
+    }
+    .activity-item.done {
+      background: rgba(34,197,94,0.08);
+      border-color: rgba(34,197,94,0.2);
+    }
+    .item-label {
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 3px;
+    }
+    .item-label.search { color: var(--accent); }
+    .item-label.scrape { color: var(--accent2); }
+    .item-label.thinking { color: var(--yellow); }
+    .item-label.done { color: var(--green); }
+    .item-text { word-break: break-word; }
+
+    /* ── Report panel ── */
+    #report-panel { display: flex; flex-direction: column; }
+    #report-body {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: var(--muted);
+      gap: 10px;
+      font-size: 14px;
+    }
+    .empty-icon { font-size: 36px; }
+
+    /* ── Markdown styles ── */
+    #report-content h1 {
+      font-size: 22px; font-weight: 700; margin-bottom: 20px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    #report-content h2 {
+      font-size: 16px; font-weight: 700; margin: 24px 0 10px;
+      color: var(--accent);
+    }
+    #report-content h3 {
+      font-size: 14px; font-weight: 600; margin: 16px 0 6px;
+    }
+    #report-content p { font-size: 14px; line-height: 1.7; margin-bottom: 10px; color: #c8c8d8; }
+    #report-content ul, #report-content ol {
+      padding-left: 18px; margin-bottom: 10px;
+    }
+    #report-content li { font-size: 14px; line-height: 1.7; color: #c8c8d8; margin-bottom: 3px; }
+    #report-content strong { color: var(--text); }
+    #report-content table {
+      width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px;
+    }
+    #report-content th {
+      background: var(--surface2); padding: 8px 12px;
+      text-align: left; font-weight: 600; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+    }
+    #report-content td {
+      padding: 8px 12px; border: 1px solid var(--border);
+      color: #c8c8d8; vertical-align: top;
+    }
+    #report-content tr:hover td { background: var(--surface2); }
+    #report-content blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 6px 12px; margin: 10px 0;
+      color: var(--muted); font-style: italic; font-size: 13px;
+    }
+    #report-content em { color: var(--muted); }
+    #report-content hr {
+      border: none; border-top: 1px solid var(--border); margin: 20px 0;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stats bar ── */
+    #stats {
+      display: none;
+      max-width: 600px;
+      margin: -32px auto 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      gap: 20px;
+      justify-content: center;
+    }
+    #stats.visible { display: flex; }
+    .stat span { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍</div>
+  <h1>Startup Research Agent</h1>
+  <span class="badge">Powered by Claude + Bright Data</span>
+</header>
+
+<main>
+  <div class="hero">
+    <h2>Research any startup instantly</h2>
+    <p>Enter a company name and the agent will search the web, scrape live pages,<br>and compile a full research report in seconds.</p>
+    <div class="powered-by">
+      Built with <span class="pill">Claude API</span> tool use + <span class="pill cyan">Bright Data</span> SERP &amp; Web Unlocker
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" id="company-input" placeholder="e.g. Mistral AI, Cursor, ElevenLabs..." autocomplete="off" />
+    <button id="research-btn" onclick="startResearch()">
+      <span id="btn-text">Research</span>
+      <div class="spinner" id="btn-spinner"></div>
+    </button>
+  </div>
+
+  <div id="stats">
+    <div>Searches: <span id="stat-searches">0</span></div>
+    <div>Pages scraped: <span id="stat-scrapes">0</span></div>
+    <div>Tool calls: <span id="stat-tools">0</span></div>
+  </div>
+
+  <div id="workspace">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot idle" id="activity-dot"></div>
+        Agent Activity
+      </div>
+      <div id="activity-list"></div>
+    </div>
+
+    <div class="panel" id="report-panel">
+      <div class="panel-header">Research Report</div>
+      <div id="report-body">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">📋</div>
+          <div>Report will appear here once the agent finishes</div>
+        </div>
+        <div id="report-content" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const input = document.getElementById('company-input');
+  const btn = document.getElementById('research-btn');
+  const btnText = document.getElementById('btn-text');
+  const spinner = document.getElementById('btn-spinner');
+  const workspace = document.getElementById('workspace');
+  const activityList = document.getElementById('activity-list');
+  const activityDot = document.getElementById('activity-dot');
+  const reportContent = document.getElementById('report-content');
+  const emptyState = document.getElementById('empty-state');
+  const stats = document.getElementById('stats');
+
+  let searches = 0, scrapes = 0, tools = 0;
+
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') startResearch(); });
+
+  function updateStats() {
+    document.getElementById('stat-searches').textContent = searches;
+    document.getElementById('stat-scrapes').textContent = scrapes;
+    document.getElementById('stat-tools').textContent = tools;
+  }
+
+  function addActivity(type, label, text) {
+    const item = document.createElement('div');
+    item.className = `activity-item ${type}`;
+    item.innerHTML = `<div class="item-label ${type}">${label}</div><div class="item-text">${text}</div>`;
+    activityList.appendChild(item);
+    activityList.scrollTop = activityList.scrollHeight;
+  }
+
+  function setLoading(loading) {
+    btn.disabled = loading;
+    btnText.style.display = loading ? 'none' : 'inline';
+    spinner.style.display = loading ? 'block' : 'none';
+    activityDot.className = loading ? 'dot' : 'dot idle';
+  }
+
+  function startResearch() {
+    const company = input.value.trim();
+    if (!company) { input.focus(); return; }
+
+    // Reset UI
+    activityList.innerHTML = '';
+    reportContent.style.display = 'none';
+    reportContent.innerHTML = '';
+    emptyState.style.display = 'flex';
+    workspace.className = 'visible';
+    stats.className = 'visible';
+    searches = scrapes = tools = 0;
+    updateStats();
+    setLoading(true);
+
+    addActivity('thinking', 'Starting', `Researching "${company}"...`);
+
+    const evtSource = new EventSource('/research?' + new URLSearchParams({ company }));
+
+    // Use GET with query param via EventSource, but our endpoint is POST.
+    // Use fetch + ReadableStream instead.
+    evtSource.close();
+
+    fetch('/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company }),
+    }).then(response => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      function processChunk({ done, value }) {
+        if (done) { setLoading(false); return; }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === 'thinking') {
+            const short = event.text.length > 120 ? event.text.slice(0, 120) + '…' : event.text;
+            addActivity('thinking', 'Thinking', short);
+          }
+          else if (event.type === 'tool_call') {
+            tools++;
+            updateStats();
+            if (event.name === 'search_web') {
+              searches++;
+              updateStats();
+              addActivity('search', 'Google Search', `"${event.input.query}"`);
+            } else if (event.name === 'scrape_url') {
+              scrapes++;
+              updateStats();
+              const domain = (() => { try { return new URL(event.input.url).hostname; } catch { return event.input.url; } })();
+              addActivity('scrape', 'Scraping Page', domain);
+            }
+          }
+          else if (event.type === 'report') {
+            emptyState.style.display = 'none';
+            reportContent.style.display = 'block';
+            reportContent.innerHTML = marked.parse(event.content);
+            addActivity('done', 'Complete', 'Report generated successfully');
+            setLoading(false);
+          }
+          else if (event.type === 'error') {
+            addActivity('thinking', 'Error', event.message);
+            setLoading(false);
+          }
+          else if (event.type === 'done') {
+            setLoading(false);
+          }
+        }
+
+        return reader.read().then(processChunk);
+      }
+
+      reader.read().then(processChunk);
+    }).catch(err => {
+      addActivity('thinking', 'Error', err.message);
+      setLoading(false);
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 A fully programmatic AI agent that researches any startup and produces a structured report. Built with the **Claude API** (tool use) and **Bright Data** (SERP API + Web Unlocker).
 
-This is the companion repository for the [Lablab.ai tutorial](https://lablab.ai) — *Build a Startup Research Agent with Claude API and Bright Data*.
+This is the companion repository for the [Lablab.ai tutorial]([https://lablab.ai](https://lablab.ai/ai-tutorials/claude-bright-data-research-agent-for-ai-hackathons) — *Build a Startup Research Agent with Claude API and Bright Data*.
 
 ---
 
